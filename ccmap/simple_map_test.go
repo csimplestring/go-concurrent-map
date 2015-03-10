@@ -3,6 +3,8 @@ package ccmap
 import (
 	"fmt"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 // import (
@@ -18,7 +20,19 @@ func TestSimpleMapPut(t *testing.T) {
 	m.Put(NewStringKey("k1"), 1)
 	m.Put(NewStringKey("k2"), 2)
 	m.Put(NewStringKey("k2"), 3)
+}
 
+func TestSimpleMapGet(t *testing.T) {
+	m := NewSimpleMap()
+
+	for i := 0; i < 10000; i++ {
+		key := NewStringKey(fmt.Sprintf("%s", i))
+		m.Put(key, i)
+	}
+
+	for i := 0; i < 10000; i++ {
+		assert.Equal(t, i, m.Get(NewStringKey(fmt.Sprintf("%s", i))))
+	}
 }
 
 func BenchmarkSimpleMap(b *testing.B) {

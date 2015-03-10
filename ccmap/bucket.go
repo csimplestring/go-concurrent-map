@@ -9,13 +9,24 @@ type Bucket interface {
 	Put(Entry)
 	Get(key Key) Entry
 	Delete(key Key) Entry
+	Entries() []Entry
+	Size() int
 }
 
 // newEntry creates a new Entry.
 func newBucket() *bucket {
-	return &bucket{}
+	return &bucket{
+	//entries: make([]Entry, ENTRY_SIZE, ENTRY_SIZE),
+	}
 }
 
+// bucket uses slice to store Entry.
+//
+//
+//
+//
+//
+//
 type bucket struct {
 	entries []Entry
 }
@@ -46,6 +57,14 @@ func (b *bucket) Delete(key Key) Entry {
 	return e
 }
 
+func (b *bucket) Entries() []Entry {
+	return b.entries
+}
+
+func (b *bucket) Size() int {
+	return len(b.entries)
+}
+
 func (b *bucket) deleteEntry(i int) {
 	b.entries[i] = b.entries[len(b.entries)-1]
 	b.entries[len(b.entries)-1] = nil
@@ -70,4 +89,14 @@ func (b *bucket) String() string {
 	str += "]"
 
 	return str
+}
+
+// bucketV1 uses array to store Entry.
+//
+//
+//
+//
+//
+type bucketV1 struct {
+	entries [ENTRY_SIZE]Entry
 }

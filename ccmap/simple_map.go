@@ -11,21 +11,66 @@ func NewSimpleMap() *SimpleMap {
 	}
 
 	return &SimpleMap{
-		buckets: buckets,
+		bucketSize: BUCKET_SIZE_DEFAULT,
+		entrySize:  0,
+		threshold:  BUCKET_SIZE_DEFAULT,
+		buckets:    buckets,
 	}
 }
 
 type SimpleMap struct {
-	buckets []Bucket
+	entrySize  int
+	bucketSize int
+	threshold  int
+	buckets    []Bucket
 }
 
 func (s *SimpleMap) Put(key Key, val interface{}) error {
-	h := key.Hash() % len(s.buckets)
+	h := hashFor(key.Hash())
+	h = indexFor(h, len(s.buckets))
 	s.buckets[h].Put(newEntry(key, val))
+
+	s.entrySize++
+	if s.entrySize > s.threshold {
+		s.resize(2 * s.bucketSize)
+	}
+
 	return nil
 }
 
 func (s *SimpleMap) Get(key Key) interface{} {
-	h := key.Hash() % len(s.buckets)
+	h := hashFor(key.Hash())
+	h = indexFor(h, len(s.buckets))
 	return s.buckets[h].Get(key).Value()
+}
+
+func (s *SimpleMap) resize(length int) {
+	old := s.buckets
+
+	s.bucketSize = length
+	s.threshold = length
+
+	s.buckets = make([]Bucket, length)
+	for i := 0; i < length; i++ {
+		s.buckets[i] = newBucket()
+	}
+
+	for _, b := range old {
+		oldEntries := b.Entries()
+
+		for _, oldEntry := range oldEntries {
+			h := hashFor(oldEntry.Key().Hash())
+			h = indexFor(h, length)
+			s.buckets[h].Put(oldEntry)
+		}
+	}
+}
+
+func hashFor(h int) int {
+	h ^= (h >> 20) ^ (h >> 12)
+	return h ^ (h >> 7) ^ (h >> 4)
+}
+
+func indexFor(h, length int) int {
+	return h & (length - 1)
 }
