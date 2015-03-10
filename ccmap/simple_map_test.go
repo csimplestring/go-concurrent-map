@@ -9,12 +9,16 @@ import (
 	"github.com/csimplestring/go-concurrent-map/algo/random"
 )
 
-// import (
-// 	"fmt"
-// 	"testing"
+var (
+	benchmarkKeys []Key
+)
 
-// 	"github.com/stretchr/testify/assert"
-// )
+func init() {
+	benchmarkKeys = make([]Key, 10000)
+	for i := 0; i < 10000; i++ {
+		benchmarkKeys[i] = NewStringKey(random.NewLen(15))
+	}
+}
 
 func TestSimpleMapPut(t *testing.T) {
 	m := NewSimpleMap()
@@ -40,25 +44,23 @@ func TestSimpleMapGet(t *testing.T) {
 func BenchmarkSimpleMapPut(b *testing.B) {
 	m := NewSimpleMap()
 
-	for i := 0; i < 10000; i++ {
-		key := NewStringKey(random.NewLen(20))
-		m.Put(key, i)
+	for i, k := range benchmarkKeys {
+		m.Put(k, i)
 	}
 }
 
 func BenchmarkSimpleMapGet(b *testing.B) {
 	m := NewSimpleMap()
 
-	for i := 0; i < 10000; i++ {
-		key := NewStringKey(random.NewLen(20))
-		m.Put(key, i)
+	size := len(benchmarkKeys)
+	for i := 0; i < size/2; i++ {
+		m.Put(benchmarkKeys[i], i)
 	}
 	b.StopTimer()
 	b.StartTimer()
 
-	for i := 0; i < 10000; i++ {
-		key := NewStringKey(random.NewLen(20))
-		_ = m.Get(key)
+	for _, k := range benchmarkKeys {
+		m.Get(k)
 	}
 }
 
@@ -79,25 +81,24 @@ func BenchmarkSimpleMap(b *testing.B) {
 func BenchmarkStandardMapPut(b *testing.B) {
 	m := make(map[string]interface{}, 16)
 
-	for i := 0; i < 10000; i++ {
-		key := NewStringKey(random.NewLen(20))
-		m[key.String()] = i
+	for i, k := range benchmarkKeys {
+		m[k.String()] = i
 	}
 }
 
 func BenchmarkStandardMapGet(b *testing.B) {
 	m := make(map[string]interface{}, 16)
 
-	for i := 0; i < 10000; i++ {
-		key := NewStringKey(random.NewLen(20))
-		m[key.String()] = i
+	size := len(benchmarkKeys)
+	for i := 0; i < size/2; i++ {
+		m[benchmarkKeys[i].String()] = i
 	}
+
 	b.StopTimer()
 	b.StartTimer()
 
-	for i := 0; i < 10000; i++ {
-		key := NewStringKey(random.NewLen(20))
-		_ = m[key.String()]
+	for _, k := range benchmarkKeys {
+		_ = m[k.String()]
 	}
 }
 
