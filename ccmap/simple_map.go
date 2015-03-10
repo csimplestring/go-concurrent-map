@@ -41,7 +41,12 @@ func (s *SimpleMap) Put(key Key, val interface{}) error {
 func (s *SimpleMap) Get(key Key) interface{} {
 	h := hashFor(key.Hash())
 	h = indexFor(h, len(s.buckets))
-	return s.buckets[h].Get(key).Value()
+
+	en := s.buckets[h].Get(key)
+	if en == nil {
+		return nil
+	}
+	return en.Value()
 }
 
 func (s *SimpleMap) resize(length int) {
