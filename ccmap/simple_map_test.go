@@ -41,6 +41,17 @@ func TestSimpleMapGet(t *testing.T) {
 	}
 }
 
+func TestSimpleMapDelete(t *testing.T) {
+	m := NewSimpleMap()
+
+	m.Put(NewStringKey("k1"), 1)
+	m.Put(NewStringKey("k2"), 2)
+	m.Put(NewStringKey("k2"), 3)
+
+	assert.True(t, m.Delete(NewStringKey("k1")))
+	assert.Nil(t, m.Get(NewStringKey("k1")))
+}
+
 func BenchmarkSimpleMapPut(b *testing.B) {
 	m := NewSimpleMap()
 
@@ -61,6 +72,21 @@ func BenchmarkSimpleMapGet(b *testing.B) {
 
 	for _, k := range benchmarkKeys {
 		m.Get(k)
+	}
+}
+
+func BenchmarkSimpleMapDelete(b *testing.B) {
+	m := NewSimpleMap()
+
+	size := len(benchmarkKeys)
+	for i := 0; i < size/2; i++ {
+		m.Put(benchmarkKeys[i], i)
+	}
+	b.StopTimer()
+	b.StartTimer()
+
+	for _, k := range benchmarkKeys {
+		m.Delete(k)
 	}
 }
 
@@ -99,6 +125,22 @@ func BenchmarkStandardMapGet(b *testing.B) {
 
 	for _, k := range benchmarkKeys {
 		_ = m[k.String()]
+	}
+}
+
+func BenchmarkStandardMapDelete(b *testing.B) {
+	m := make(map[string]interface{}, 16)
+
+	size := len(benchmarkKeys)
+	for i := 0; i < size/2; i++ {
+		m[benchmarkKeys[i].String()] = i
+	}
+
+	b.StopTimer()
+	b.StartTimer()
+
+	for _, k := range benchmarkKeys {
+		delete(m, k.String())
 	}
 }
 
