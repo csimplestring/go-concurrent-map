@@ -31,17 +31,38 @@ func TestBucketFindEntry(t *testing.T) {
 }
 
 func TestBucketPut(t *testing.T) {
-	b := newBucket()
-	b.Put(newEntry(NewStringKey("k1"), 1))
-	b.Put(newEntry(NewStringKey("k2"), 2))
-	assert.Equal(t, "[[k1 1],[k2 2],]", b.String())
+	tests := []struct {
+		b   Bucket
+		str string
+	}{
+		{
+			newBucket(),
+			"[[k1 1],[k2 7],]",
+		},
+		{
+			newLinkedBucket(),
+			"[[k2 7],[k2 2],[k1 1],]",
+		},
+	}
 
-	b.Put(newEntry(NewStringKey("k2"), 7))
-	assert.Equal(t, "[[k1 1],[k2 7],]", b.String())
+	for i, test := range tests {
+		t.Logf("test[%d]\n", i)
+
+		ok := test.b.Put(newEntry(NewStringKey("k1"), 1))
+		assert.True(t, ok)
+
+		ok = test.b.Put(newEntry(NewStringKey("k2"), 2))
+		assert.True(t, ok)
+
+		ok = test.b.Put(newEntry(NewStringKey("k2"), 7))
+
+		assert.Equal(t, test.str, test.b.String())
+	}
+
 }
 
 func TestBucketGet(t *testing.T) {
-	b := &bucket{
+	b1 := &bucket{
 		entries: []Entry{
 			newEntry(NewStringKey("k1"), 1),
 			newEntry(NewStringKey("k2"), 2),
@@ -49,9 +70,33 @@ func TestBucketGet(t *testing.T) {
 		},
 	}
 
-	assert.Equal(t, 2, b.Get(NewStringKey("k2")).Value())
-	assert.Equal(t, "k2", b.Get(NewStringKey("k2")).Key().String())
-	assert.Nil(t, b.Get(NewStringKey("k4")))
+	b2 := newLinkedBucket()
+	b2.Put(newEntry(NewStringKey("k1"), 1))
+	b2.Put(newEntry(NewStringKey("k2"), 2))
+	b2.Put(newEntry(NewStringKey("k3"), 3))
+
+	tests := []struct {
+		b Bucket
+	}{
+		{
+			b1,
+		},
+		{
+			b2,
+		},
+	}
+
+	for i, test := range tests {
+		t.Logf("tests[%d]", i)
+
+		en, ok := test.b.Get(NewStringKey("k2"))
+		assert.True(t, ok)
+		assert.Equal(t, 2, en.Value())
+
+		en, ok = test.b.Get(NewStringKey("k4"))
+		assert.False(t, ok)
+		assert.Nil(t, en)
+	}
 }
 
 func TestBucketDelete(t *testing.T) {
@@ -63,11 +108,13 @@ func TestBucketDelete(t *testing.T) {
 		},
 	}
 
-	e := b.Delete(NewStringKey("k2"))
+	e, ok := b.Delete(NewStringKey("k2"))
+	assert.True(t, ok)
 	assert.Equal(t, "[[k1 1],[k3 3],]", b.String())
 	assert.Equal(t, "[k2 2]", e.String())
 
-	e = b.Delete(NewStringKey("k4"))
+	e, ok = b.Delete(NewStringKey("k4"))
+	assert.False(t, ok)
 	assert.Equal(t, "[[k1 1],[k3 3],]", b.String())
 	assert.Nil(t, e)
 }

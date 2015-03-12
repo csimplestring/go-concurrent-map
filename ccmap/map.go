@@ -19,16 +19,19 @@ type Key interface {
 
 // NewStringKey return a new string key.
 func NewStringKey(str string) Key {
-	return &StringKey{str: str}
+	return &StringKey{
+		str: str,
+		h:   (int)(hash.BKDRHash(str)),
+	}
 }
 
 type StringKey struct {
+	h   int
 	str string
 }
 
 func (s *StringKey) Hash() int {
-	h := hash.BKDRHash(s.str)
-	return (int)(h)
+	return s.h
 }
 
 func (s *StringKey) Equal(k Key) bool {

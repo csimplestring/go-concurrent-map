@@ -6,11 +6,13 @@ const (
 )
 
 type Bucket interface {
-	Put(Entry)
-	Get(key Key) Entry
-	Delete(key Key) Entry
+	Put(Entry) bool
+	Get(key Key) (Entry, bool)
+	Delete(key Key) (Entry, bool)
 	Entries() []Entry
 	Size() int
+
+	String() string
 }
 
 // newEntry creates a new Entry.
@@ -31,30 +33,36 @@ type bucket struct {
 	entries []Entry
 }
 
-func (b *bucket) Put(e Entry) {
+func (b *bucket) Put(e Entry) bool {
 	key := e.Key()
 	_, r := b.findEntry(key)
 
 	if r != nil {
 		r.SetValue(e.Value())
-		return
+		return false
 	}
+
 	b.entries = append(b.entries, e)
+	return true
 }
 
-func (b *bucket) Get(key Key) Entry {
-	_, e := b.findEntry(key)
-	return e
-}
-
-func (b *bucket) Delete(key Key) Entry {
+func (b *bucket) Get(key Key) (Entry, bool) {
 	i, e := b.findEntry(key)
 	if i == -1 {
-		return nil
+		return nil, false
+	}
+
+	return e, true
+}
+
+func (b *bucket) Delete(key Key) (Entry, bool) {
+	i, e := b.findEntry(key)
+	if i == -1 {
+		return nil, false
 	}
 
 	b.deleteEntry(i)
-	return e
+	return e, true
 }
 
 func (b *bucket) Entries() []Entry {
@@ -91,12 +99,70 @@ func (b *bucket) String() string {
 	return str
 }
 
-// bucketV1 uses array to store Entry.
+// bucketV1 uses linked list to store Entry.
+// optimised for writes.
 //
 //
 //
 //
 //
-type bucketV1 struct {
-	entries [ENTRY_SIZE]Entry
+
+func newLinkedBucket() Bucket {
+	return &linkedBucket{
+		head: newLinkedEntry(nil, nil),
+	}
+}
+
+func newLinkedEntry(en Entry, next *linkedEntry) *linkedEntry {
+	return &linkedEntry{
+		Entry: en,
+		next:  next,
+	}
+}
+
+type linkedBucket struct {
+	head *linkedEntry
+}
+
+// Put appends en at the beginning of linkedEntry list.
+func (l *linkedBucket) Put(en Entry) bool {
+	l.head.next = newLinkedEntry(en, l.head.next)
+	return true
+}
+
+func (l *linkedBucket) Get(key Key) (Entry, bool) {
+	for current := l.head.next; current != nil; current = current.next {
+		if current.Key().Equal(key) {
+			return current.Entry, true
+		}
+	}
+	return nil, false
+}
+
+func (l *linkedBucket) Delete(key Key) (Entry, bool) {
+	return l.head, true
+}
+
+func (l *linkedBucket) Entries() []Entry {
+	return nil
+}
+
+func (l *linkedBucket) Size() int {
+	return 0
+}
+
+func (l *linkedBucket) String() string {
+	str := "["
+	current := l.head.next
+	for current != nil {
+		str += current.String() + ","
+		current = current.next
+	}
+	str += "]"
+	return str
+}
+
+type linkedEntry struct {
+	Entry
+	next *linkedEntry
 }

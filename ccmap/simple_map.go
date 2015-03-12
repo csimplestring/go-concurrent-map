@@ -14,7 +14,6 @@ func NewSimpleMap() *SimpleMap {
 		loadFactor: 0.75,
 		bucketSize: BUCKET_SIZE_DEFAULT,
 		entrySize:  0,
-		threshold:  BUCKET_SIZE_DEFAULT,
 		buckets:    buckets,
 	}
 }
@@ -23,17 +22,18 @@ type SimpleMap struct {
 	loadFactor float32
 	entrySize  int
 	bucketSize int
-	threshold  int
 	buckets    []Bucket
 }
 
 func (s *SimpleMap) Put(key Key, val interface{}) error {
 	h := hashFor(key.Hash())
 	h = indexFor(h, len(s.buckets))
-	s.buckets[h].Put(newEntry(key, val))
 
-	s.entrySize++
-	if s.entrySize > s.threshold {
+	if ok := s.buckets[h].Put(newEntry(key, val)); ok {
+		s.entrySize++
+	}
+
+	if s.entrySize > s.bucketSize/2 {
 		s.resize(2 * s.bucketSize)
 	}
 
@@ -44,10 +44,11 @@ func (s *SimpleMap) Get(key Key) interface{} {
 	h := hashFor(key.Hash())
 	h = indexFor(h, len(s.buckets))
 
-	en := s.buckets[h].Get(key)
-	if en == nil {
+	en, ok := s.buckets[h].Get(key)
+	if !ok {
 		return nil
 	}
+
 	return en.Value()
 }
 
@@ -55,19 +56,18 @@ func (s *SimpleMap) Delete(key Key) bool {
 	h := hashFor(key.Hash())
 	h = indexFor(h, len(s.buckets))
 
-	en := s.buckets[h].Delete(key)
-	if en == nil {
-		return false
+	_, ok := s.buckets[h].Delete(key)
+	if ok {
+		s.entrySize--
 	}
-	return true
+
+	return ok
 }
 
 func (s *SimpleMap) resize(length int) {
 	old := s.buckets
 
 	s.bucketSize = length
-	s.threshold = length
-
 	s.buckets = make([]Bucket, length)
 	for i := 0; i < length; i++ {
 		s.buckets[i] = newBucket()
