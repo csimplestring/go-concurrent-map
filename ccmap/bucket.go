@@ -10,6 +10,7 @@ type Bucket interface {
 	Get(key Key) (Entry, bool)
 	Delete(key Key) (Entry, bool)
 	Entries() []Entry
+	Pop() (Entry, bool)
 	Size() int
 
 	String() string
@@ -65,6 +66,10 @@ func (b *bucket) Delete(key Key) (Entry, bool) {
 	return e, true
 }
 
+func (b *bucket) Pop() (Entry, bool) {
+	return nil, true
+}
+
 func (b *bucket) Entries() []Entry {
 	return b.entries
 }
@@ -115,18 +120,21 @@ func newLinkedBucket() Bucket {
 
 func newLinkedEntry(en Entry, next *linkedEntry) *linkedEntry {
 	return &linkedEntry{
-		Entry: en,
-		next:  next,
+		Entry:   en,
+		next:    next,
+		deleted: false,
 	}
 }
 
 type linkedBucket struct {
+	size int
 	head *linkedEntry
 }
 
 // Put appends en at the beginning of linkedEntry list.
 func (l *linkedBucket) Put(en Entry) bool {
 	l.head.next = newLinkedEntry(en, l.head.next)
+	l.size++
 	return true
 }
 
@@ -140,15 +148,51 @@ func (l *linkedBucket) Get(key Key) (Entry, bool) {
 }
 
 func (l *linkedBucket) Delete(key Key) (Entry, bool) {
-	return l.head, true
+	var (
+		i  = 0
+		d  Entry
+		ok = false
+	)
+
+	prev := l.head
+	for current := l.head.next; current != nil; current = current.next {
+		if current.Key().Equal(key) {
+			prev.next = current.next
+			if i == 0 {
+				d = current.Entry
+				i++
+				ok = true
+			}
+		}
+		prev = current
+	}
+	l.size = l.size - i
+
+	return d, ok
+}
+
+func (l *linkedBucket) Pop() (Entry, bool) {
+	if first := l.head.next; first != nil {
+		l.head.next = first.next
+		l.size--
+		return first.Entry, true
+	}
+	return nil, false
 }
 
 func (l *linkedBucket) Entries() []Entry {
-	return nil
+	entries := make([]Entry, l.size)
+	i := 0
+	for current := l.head.next; current != nil; current = current.next {
+		entries[i] = current.Entry
+		i++
+	}
+
+	return entries
 }
 
 func (l *linkedBucket) Size() int {
-	return 0
+	return l.size
 }
 
 func (l *linkedBucket) String() string {
@@ -164,5 +208,6 @@ func (l *linkedBucket) String() string {
 
 type linkedEntry struct {
 	Entry
-	next *linkedEntry
+	next    *linkedEntry
+	deleted bool
 }

@@ -99,8 +99,8 @@ func TestBucketGet(t *testing.T) {
 	}
 }
 
-func TestBucketDelete(t *testing.T) {
-	b := &bucket{
+func TestBucketDeleteOK(t *testing.T) {
+	b1 := &bucket{
 		entries: []Entry{
 			newEntry(NewStringKey("k1"), 1),
 			newEntry(NewStringKey("k2"), 2),
@@ -108,13 +108,100 @@ func TestBucketDelete(t *testing.T) {
 		},
 	}
 
-	e, ok := b.Delete(NewStringKey("k2"))
-	assert.True(t, ok)
-	assert.Equal(t, "[[k1 1],[k3 3],]", b.String())
-	assert.Equal(t, "[k2 2]", e.String())
+	b2 := newLinkedBucket()
+	b2.Put(newEntry(NewStringKey("k1"), 1))
+	b2.Put(newEntry(NewStringKey("k2"), 2))
+	b2.Put(newEntry(NewStringKey("k3"), 3))
 
-	e, ok = b.Delete(NewStringKey("k4"))
-	assert.False(t, ok)
-	assert.Equal(t, "[[k1 1],[k3 3],]", b.String())
-	assert.Nil(t, e)
+	tests := []struct {
+		b   Bucket
+		key string
+		bs  string
+		es  string
+	}{
+		{
+			b1,
+			"k2",
+			"[[k1 1],[k3 3],]",
+			"[k2 2]",
+		},
+		{
+			b2,
+			"k2",
+			"[[k3 3],[k1 1],]",
+			"[k2 2]",
+		},
+	}
+
+	for i, test := range tests {
+		t.Logf("tests[%d]", i)
+
+		e, ok := test.b.Delete(NewStringKey(test.key))
+		assert.True(t, ok)
+		assert.Equal(t, test.bs, test.b.String())
+		assert.Equal(t, test.es, e.String())
+	}
+}
+
+func TestBucketDeleteFailed(t *testing.T) {
+	b1 := &bucket{
+		entries: []Entry{
+			newEntry(NewStringKey("k1"), 1),
+			newEntry(NewStringKey("k2"), 2),
+			newEntry(NewStringKey("k3"), 3),
+		},
+	}
+
+	b2 := newLinkedBucket()
+	b2.Put(newEntry(NewStringKey("k1"), 1))
+	b2.Put(newEntry(NewStringKey("k2"), 2))
+	b2.Put(newEntry(NewStringKey("k3"), 3))
+
+	tests := []struct {
+		b   Bucket
+		key string
+	}{
+		{
+			b1,
+			"k4",
+		},
+		{
+			b2,
+			"k4",
+		},
+	}
+
+	for i, test := range tests {
+		t.Logf("tests[%d]", i)
+
+		e, ok := test.b.Delete(NewStringKey(test.key))
+		assert.False(t, ok)
+		assert.Nil(t, e)
+	}
+}
+
+func TestBucketPopOK(t *testing.T) {
+	b2 := newLinkedBucket()
+	b2.Put(newEntry(NewStringKey("k1"), 1))
+
+	tests := []struct {
+		b  Bucket
+		bs string
+		es string
+	}{
+		{
+			b2,
+			"[]",
+			"[k1 1]",
+		},
+	}
+
+	for i, test := range tests {
+		t.Logf("tests[%d]", i)
+
+		e, ok := test.b.Pop()
+		assert.True(t, ok)
+		assert.Equal(t, test.bs, test.b.String())
+		assert.Equal(t, test.es, e.String())
+	}
 }

@@ -52,6 +52,27 @@ func TestSimpleMapDelete(t *testing.T) {
 	assert.Nil(t, m.Get(NewStringKey("k1")))
 }
 
+func TestLinkedMapPut(t *testing.T) {
+	m := NewLinkedMap()
+
+	m.Put(NewStringKey("k1"), 1)
+	m.Put(NewStringKey("k2"), 2)
+	m.Put(NewStringKey("k2"), 3)
+}
+
+func TestLinkedMapGet(t *testing.T) {
+	m := NewLinkedMap()
+
+	for i := 0; i < 10000; i++ {
+		key := NewStringKey(fmt.Sprintf("%s", i))
+		m.Put(key, i)
+	}
+
+	for i := 0; i < 10000; i++ {
+		assert.Equal(t, i, m.Get(NewStringKey(fmt.Sprintf("%s", i))))
+	}
+}
+
 func BenchmarkSimpleMapPut(b *testing.B) {
 	m := NewSimpleMap()
 
