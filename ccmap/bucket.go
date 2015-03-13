@@ -8,7 +8,7 @@ const (
 type Bucket interface {
 	Put(Entry) bool
 	Get(key Key) (Entry, bool)
-	Delete(key Key) (Entry, bool)
+	Delete(key Key) (Entry, int)
 	Entries() []Entry
 	Pop() (Entry, bool)
 	Size() int
@@ -56,14 +56,14 @@ func (b *bucket) Get(key Key) (Entry, bool) {
 	return e, true
 }
 
-func (b *bucket) Delete(key Key) (Entry, bool) {
+func (b *bucket) Delete(key Key) (Entry, int) {
 	i, e := b.findEntry(key)
 	if i == -1 {
-		return nil, false
+		return nil, 0
 	}
 
 	b.deleteEntry(i)
-	return e, true
+	return e, 1
 }
 
 func (b *bucket) Pop() (Entry, bool) {
@@ -120,21 +120,20 @@ func newLinkedBucket() Bucket {
 
 func newLinkedEntry(en Entry, next *linkedEntry) *linkedEntry {
 	return &linkedEntry{
-		Entry:   en,
-		next:    next,
-		deleted: false,
+		Entry: en,
+		next:  next,
 	}
 }
 
 type linkedBucket struct {
-	size int
-	head *linkedEntry
+	totalEntryCnt int
+	head          *linkedEntry
 }
 
 // Put appends en at the beginning of linkedEntry list.
 func (l *linkedBucket) Put(en Entry) bool {
 	l.head.next = newLinkedEntry(en, l.head.next)
-	l.size++
+	l.totalEntryCnt++
 	return true
 }
 
@@ -147,11 +146,10 @@ func (l *linkedBucket) Get(key Key) (Entry, bool) {
 	return nil, false
 }
 
-func (l *linkedBucket) Delete(key Key) (Entry, bool) {
+func (l *linkedBucket) Delete(key Key) (Entry, int) {
 	var (
-		i  = 0
-		d  Entry
-		ok = false
+		i = 0
+		d Entry
 	)
 
 	prev := l.head
@@ -160,28 +158,28 @@ func (l *linkedBucket) Delete(key Key) (Entry, bool) {
 			prev.next = current.next
 			if i == 0 {
 				d = current.Entry
-				i++
-				ok = true
 			}
+			i++
 		}
 		prev = current
 	}
-	l.size = l.size - i
 
-	return d, ok
+	l.totalEntryCnt = l.totalEntryCnt - i
+
+	return d, i
 }
 
 func (l *linkedBucket) Pop() (Entry, bool) {
 	if first := l.head.next; first != nil {
 		l.head.next = first.next
-		l.size--
+		l.totalEntryCnt--
 		return first.Entry, true
 	}
 	return nil, false
 }
 
 func (l *linkedBucket) Entries() []Entry {
-	entries := make([]Entry, l.size)
+	entries := make([]Entry, l.totalEntryCnt)
 	i := 0
 	for current := l.head.next; current != nil; current = current.next {
 		entries[i] = current.Entry
@@ -192,14 +190,14 @@ func (l *linkedBucket) Entries() []Entry {
 }
 
 func (l *linkedBucket) Size() int {
-	return l.size
+	return l.totalEntryCnt
 }
 
 func (l *linkedBucket) String() string {
 	str := "["
 	current := l.head.next
 	for current != nil {
-		str += current.String() + ","
+		str += current.Entry.String() + ","
 		current = current.next
 	}
 	str += "]"
@@ -208,6 +206,5 @@ func (l *linkedBucket) String() string {
 
 type linkedEntry struct {
 	Entry
-	next    *linkedEntry
-	deleted bool
+	next *linkedEntry
 }

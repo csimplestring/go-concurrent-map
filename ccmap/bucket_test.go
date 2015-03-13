@@ -118,26 +118,29 @@ func TestBucketDeleteOK(t *testing.T) {
 		key string
 		bs  string
 		es  string
+		cnt int
 	}{
 		{
 			b1,
 			"k2",
 			"[[k1 1],[k3 3],]",
 			"[k2 2]",
+			1,
 		},
 		{
 			b2,
 			"k2",
 			"[[k3 3],[k1 1],]",
 			"[k2 2]",
+			1,
 		},
 	}
 
 	for i, test := range tests {
 		t.Logf("tests[%d]", i)
 
-		e, ok := test.b.Delete(NewStringKey(test.key))
-		assert.True(t, ok)
+		e, cnt := test.b.Delete(NewStringKey(test.key))
+		assert.Equal(t, test.cnt, cnt)
 		assert.Equal(t, test.bs, test.b.String())
 		assert.Equal(t, test.es, e.String())
 	}
@@ -174,8 +177,8 @@ func TestBucketDeleteFailed(t *testing.T) {
 	for i, test := range tests {
 		t.Logf("tests[%d]", i)
 
-		e, ok := test.b.Delete(NewStringKey(test.key))
-		assert.False(t, ok)
+		e, cnt := test.b.Delete(NewStringKey(test.key))
+		assert.Equal(t, 0, cnt)
 		assert.Nil(t, e)
 	}
 }
