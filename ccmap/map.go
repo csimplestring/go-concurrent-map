@@ -113,6 +113,9 @@ func NewLinkedMap() *LinkedMap {
 		buckets:    buckets,
 
 		rehashIdx: 0,
+
+		hashFunc: hashFor,
+		slotFunc: indexFor,
 	}
 }
 
@@ -161,7 +164,7 @@ func (l *LinkedMap) moveEntry(n int) error {
 		}
 
 		// move to new bucket
-		h := indexFor(hashFor(en.Key().Hash()), l.newBucketSize)
+		h := l.slotFunc(l.hashFunc(en.Key().Hash()), l.newBucketSize)
 		l.newBuckets[h].Put(en)
 
 		i++
@@ -191,7 +194,7 @@ func (l *LinkedMap) Put(key Key, val interface{}) error {
 	entry := newEntry(key, val)
 
 	if (l.entrySize + 1) < l.threshold {
-		h := indexFor(hashFor(key.Hash()), l.bucketSize)
+		h := l.slotFunc(l.hashFunc(key.Hash()), l.bucketSize)
 		if ok := l.buckets[h].Put(entry); ok {
 			l.entrySize++
 		}
@@ -204,7 +207,7 @@ func (l *LinkedMap) Put(key Key, val interface{}) error {
 	}
 
 	// insert entry to new bucket slice
-	h := indexFor(hashFor(key.Hash()), l.newBucketSize)
+	h := l.slotFunc(l.hashFunc(key.Hash()), l.newBucketSize)
 	if ok := l.newBuckets[h].Put(entry); ok {
 		l.entrySize++
 	}
@@ -216,35 +219,37 @@ func (l *LinkedMap) Put(key Key, val interface{}) error {
 
 func (l *LinkedMap) Get(key Key) interface{} {
 	if l.newBuckets != nil {
-		h := hashFor(key.Hash())
-		h = indexFor(h, l.newBucketSize)
 
+		h := l.slotFunc(l.hashFunc(key.Hash()), l.newBucketSize)
 		if en, ok := l.newBuckets[h].Get(key); ok {
 			return en.Value()
 		}
 	}
 
-	h := hashFor(key.Hash())
-	h = indexFor(h, l.bucketSize)
-
+	h := l.slotFunc(l.hashFunc(key.Hash()), l.bucketSize)
 	en, ok := l.buckets[h].Get(key)
+
 	if !ok {
 		return nil
 	}
-
 	return en.Value()
 }
 
 func (l *LinkedMap) Delete(key Key) bool {
-	h := hashFor(key.Hash())
-	h = indexFor(h, len(l.buckets))
-
-	_, cnt := l.buckets[h].Delete(key)
-	if cnt > 0 {
-		l.entrySize--
-		return true
+	deleted := 0
+	if l.newBuckets != nil {
+		h := l.slotFunc(l.hashFunc(key.Hash()), l.newBucketSize)
+		_, cnt := l.newBuckets[h].Delete(key)
+		deleted += cnt
 	}
 
+	h := l.slotFunc(l.hashFunc(key.Hash()), l.bucketSize)
+	_, cnt := l.buckets[h].Delete(key)
+	deleted += cnt
+
+	if deleted > 0 {
+		return true
+	}
 	return false
 }
 
