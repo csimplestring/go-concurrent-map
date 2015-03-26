@@ -20,50 +20,17 @@ func init() {
 	}
 }
 
-func TestSimpleMapPut(t *testing.T) {
-	m := NewSimpleMap()
-
-	m.Put(NewStringKey("k1"), 1)
-	m.Put(NewStringKey("k2"), 2)
-	m.Put(NewStringKey("k2"), 3)
-}
-
-func TestSimpleMapGet(t *testing.T) {
-	m := NewSimpleMap()
-
-	for i := 0; i < 100000; i++ {
-		key := NewStringKey(fmt.Sprintf("%s", i))
-		m.Put(key, i)
-	}
-
-	for i := 0; i < 100000; i++ {
-		assert.Equal(t, i, m.Get(NewStringKey(fmt.Sprintf("%s", i))))
-	}
-}
-
-func TestSimpleMapDelete(t *testing.T) {
-	m := NewSimpleMap()
-
-	m.Put(NewStringKey("k1"), 1)
-	m.Put(NewStringKey("k2"), 2)
-	m.Put(NewStringKey("k2"), 3)
-
-	assert.True(t, m.Delete(NewStringKey("k1")))
-	assert.Nil(t, m.Get(NewStringKey("k1")))
-}
-
-func TestLinkedMapPut(t *testing.T) {
-	m := NewLinkedMap()
+func TestMapPut(t *testing.T) {
+	m := NewMap()
 
 	for i := 0; i < 10; i++ {
 		key := NewStringKey(fmt.Sprintf("%d", i))
 		m.Put(key, i)
 	}
-
 }
 
-func TestLinkedMapGet(t *testing.T) {
-	m := NewLinkedMap()
+func TestMapGet(t *testing.T) {
+	m := NewMap()
 
 	for i := 0; i < 100000; i++ {
 		key := NewStringKey(fmt.Sprintf("%s", i))
@@ -75,16 +42,16 @@ func TestLinkedMapGet(t *testing.T) {
 	}
 }
 
-func BenchmarkLinkedMapPut(b *testing.B) {
-	m := NewLinkedMap()
+func BenchmarkMapPut(b *testing.B) {
+	m := NewMap()
 
 	for i, k := range benchmarkKeys {
 		m.Put(k, i)
 	}
 }
 
-func BenchmarkLinkedMapGet(b *testing.B) {
-	m := NewLinkedMap()
+func BenchmarkMapGet(b *testing.B) {
+	m := NewMap()
 
 	size := len(benchmarkKeys)
 	for i := 0; i < size/2; i++ {
@@ -98,8 +65,8 @@ func BenchmarkLinkedMapGet(b *testing.B) {
 	}
 }
 
-func BenchmarkLinkedMapDelete(b *testing.B) {
-	m := NewLinkedMap()
+func BenchmarkMapDelete(b *testing.B) {
+	m := NewMap()
 
 	size := len(benchmarkKeys)
 	for i := 0; i < size/2; i++ {
@@ -110,58 +77,6 @@ func BenchmarkLinkedMapDelete(b *testing.B) {
 
 	for _, k := range benchmarkKeys {
 		m.Delete(k)
-	}
-}
-
-func BenchmarkSimpleMapPut(b *testing.B) {
-	m := NewSimpleMap()
-
-	for i, k := range benchmarkKeys {
-		m.Put(k, i)
-	}
-}
-
-func BenchmarkSimpleMapGet(b *testing.B) {
-	m := NewSimpleMap()
-
-	size := len(benchmarkKeys)
-	for i := 0; i < size/2; i++ {
-		m.Put(benchmarkKeys[i], i)
-	}
-	b.StopTimer()
-	b.StartTimer()
-
-	for _, k := range benchmarkKeys {
-		m.Get(k)
-	}
-}
-
-func BenchmarkSimpleMapDelete(b *testing.B) {
-	m := NewSimpleMap()
-
-	size := len(benchmarkKeys)
-	for i := 0; i < size/2; i++ {
-		m.Put(benchmarkKeys[i], i)
-	}
-	b.StopTimer()
-	b.StartTimer()
-
-	for _, k := range benchmarkKeys {
-		m.Delete(k)
-	}
-}
-
-func BenchmarkSimpleMap(b *testing.B) {
-	m := NewSimpleMap()
-
-	for i := 0; i < 10000; i++ {
-		key := NewStringKey(fmt.Sprintf("%s", i))
-		m.Put(key, i)
-	}
-
-	for i := 0; i < 10000; i++ {
-		key := NewStringKey(fmt.Sprintf("%s", i))
-		_ = m.Get(key)
 	}
 }
 
@@ -220,7 +135,7 @@ func BenchmarkStandardMap(b *testing.B) {
 
 }
 
-func showSimpleMap(m *LinkedMap) {
+func showSimpleMap(m *hashMap) {
 	for _, b := range m.buckets {
 		fmt.Printf("%s\n", b.String())
 	}

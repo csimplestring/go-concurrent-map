@@ -7,27 +7,6 @@ import (
 )
 
 func TestBucketFindEntry(t *testing.T) {
-	b := newBucket()
-	pos, result := b.findEntry(NewStringKey("k2"))
-	assert.Nil(t, result)
-	assert.Equal(t, -1, pos)
-
-	b = &bucket{
-		entries: []Entry{
-			newEntry(NewStringKey("k1"), 1),
-			newEntry(NewStringKey("k2"), 2),
-			newEntry(NewStringKey("k3"), 3),
-		},
-	}
-
-	pos, result = b.findEntry(NewStringKey("k2"))
-	assert.Equal(t, "k2", result.Key().String())
-	assert.Equal(t, 2, result.Value())
-	assert.Equal(t, 1, pos)
-
-	pos, result = b.findEntry(NewStringKey("k4"))
-	assert.Nil(t, result)
-	assert.Equal(t, -1, pos)
 }
 
 func TestBucketPut(t *testing.T) {
@@ -37,10 +16,6 @@ func TestBucketPut(t *testing.T) {
 	}{
 		{
 			newBucket(),
-			"[[k1 1],[k2 7],]",
-		},
-		{
-			newLinkedBucket(),
 			"[[k2 7],[k2 2],[k1 1],]",
 		},
 	}
@@ -62,15 +37,7 @@ func TestBucketPut(t *testing.T) {
 }
 
 func TestBucketGet(t *testing.T) {
-	b1 := &bucket{
-		entries: []Entry{
-			newEntry(NewStringKey("k1"), 1),
-			newEntry(NewStringKey("k2"), 2),
-			newEntry(NewStringKey("k3"), 3),
-		},
-	}
-
-	b2 := newLinkedBucket()
+	b2 := newBucket()
 	b2.Put(newEntry(NewStringKey("k1"), 1))
 	b2.Put(newEntry(NewStringKey("k2"), 2))
 	b2.Put(newEntry(NewStringKey("k3"), 3))
@@ -78,9 +45,6 @@ func TestBucketGet(t *testing.T) {
 	tests := []struct {
 		b Bucket
 	}{
-		{
-			b1,
-		},
 		{
 			b2,
 		},
@@ -100,15 +64,7 @@ func TestBucketGet(t *testing.T) {
 }
 
 func TestBucketDeleteOK(t *testing.T) {
-	b1 := &bucket{
-		entries: []Entry{
-			newEntry(NewStringKey("k1"), 1),
-			newEntry(NewStringKey("k2"), 2),
-			newEntry(NewStringKey("k3"), 3),
-		},
-	}
-
-	b2 := newLinkedBucket()
+	b2 := newBucket()
 	b2.Put(newEntry(NewStringKey("k1"), 1))
 	b2.Put(newEntry(NewStringKey("k2"), 2))
 	b2.Put(newEntry(NewStringKey("k3"), 3))
@@ -120,13 +76,6 @@ func TestBucketDeleteOK(t *testing.T) {
 		es  string
 		cnt int
 	}{
-		{
-			b1,
-			"k2",
-			"[[k1 1],[k3 3],]",
-			"[k2 2]",
-			1,
-		},
 		{
 			b2,
 			"k2",
@@ -147,15 +96,7 @@ func TestBucketDeleteOK(t *testing.T) {
 }
 
 func TestBucketDeleteFailed(t *testing.T) {
-	b1 := &bucket{
-		entries: []Entry{
-			newEntry(NewStringKey("k1"), 1),
-			newEntry(NewStringKey("k2"), 2),
-			newEntry(NewStringKey("k3"), 3),
-		},
-	}
-
-	b2 := newLinkedBucket()
+	b2 := newBucket()
 	b2.Put(newEntry(NewStringKey("k1"), 1))
 	b2.Put(newEntry(NewStringKey("k2"), 2))
 	b2.Put(newEntry(NewStringKey("k3"), 3))
@@ -164,10 +105,6 @@ func TestBucketDeleteFailed(t *testing.T) {
 		b   Bucket
 		key string
 	}{
-		{
-			b1,
-			"k4",
-		},
 		{
 			b2,
 			"k4",
@@ -184,7 +121,7 @@ func TestBucketDeleteFailed(t *testing.T) {
 }
 
 func TestBucketPopOK(t *testing.T) {
-	b2 := newLinkedBucket()
+	b2 := newBucket()
 	b2.Put(newEntry(NewStringKey("k1"), 1))
 
 	tests := []struct {

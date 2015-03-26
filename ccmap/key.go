@@ -11,25 +11,28 @@ type Key interface {
 	String() string
 }
 
-// NewStringKey return a new string key.
+// NewstringKey return a new string key.
 func NewStringKey(str string) Key {
-	return &StringKey{
+	return &stringKey{
 		str: str,
 		h:   (int)(hash.BKDRHash(str)),
 	}
 }
 
-type StringKey struct {
+// stringKey implements Key for a string.
+type stringKey struct {
 	h   int
 	str string
 }
 
-func (s *StringKey) Hash() int {
+// Hash returns hash code for s.
+func (s *stringKey) Hash() int {
 	return s.h
 }
 
-func (s *StringKey) Equal(k Key) bool {
-	other, ok := k.(*StringKey)
+// Equal checks if s == k.
+func (s *stringKey) Equal(k Key) bool {
+	other, ok := k.(*stringKey)
 	if !ok {
 		return false
 	}
@@ -37,14 +40,16 @@ func (s *StringKey) Equal(k Key) bool {
 	return s.str == other.str
 }
 
-func (s *StringKey) String() string {
+// String returns string representation of s.
+func (s *stringKey) String() string {
 	return s.str
 }
 
 // nilKey just used as place holder.
 type nilKey uint8
 
-func newNilKey() Key {
+// newNilKey new a nilKey.
+func NewNilKey() Key {
 	return new(nilKey)
 }
 

@@ -6,106 +6,23 @@ const (
 	BUCKET_SIZE_DEFAULT = 16
 )
 
-//
+// Map defines the functions that a map should support
 type Map interface {
 	Put(key Key, val interface{}) error
 	Get(key Key) interface{}
 }
 
-func NewSimpleMap() *SimpleMap {
+// NewMap new a Map.
+func NewMap() *hashMap {
 	buckets := make([]Bucket, BUCKET_SIZE_DEFAULT)
 	for i := 0; i < BUCKET_SIZE_DEFAULT; i++ {
 		buckets[i] = newBucket()
 	}
 
-	return &SimpleMap{
-		loadFactor: 0.75,
-		bucketSize: BUCKET_SIZE_DEFAULT,
-		entrySize:  0,
-		buckets:    buckets,
-	}
-}
-
-type SimpleMap struct {
-	loadFactor float32
-	entrySize  int
-	bucketSize int
-	buckets    []Bucket
-}
-
-func (s *SimpleMap) Put(key Key, val interface{}) error {
-	h := hashFor(key.Hash())
-	h = indexFor(h, len(s.buckets))
-
-	if ok := s.buckets[h].Put(newEntry(key, val)); ok {
-		s.entrySize++
-	}
-
-	if s.entrySize > s.bucketSize/2 {
-		s.resize(2 * s.bucketSize)
-	}
-
-	return nil
-}
-
-func (s *SimpleMap) Get(key Key) interface{} {
-	h := hashFor(key.Hash())
-	h = indexFor(h, len(s.buckets))
-
-	en, ok := s.buckets[h].Get(key)
-	if !ok {
-		return nil
-	}
-
-	return en.Value()
-}
-
-func (s *SimpleMap) Delete(key Key) bool {
-	h := hashFor(key.Hash())
-	h = indexFor(h, len(s.buckets))
-
-	_, cnt := s.buckets[h].Delete(key)
-	if cnt == 1 {
-		s.entrySize--
-	}
-
-	return true
-}
-
-func (s *SimpleMap) resize(length int) {
-	old := s.buckets
-
-	s.bucketSize = length
-	s.buckets = make([]Bucket, length)
-	for i := 0; i < length; i++ {
-		s.buckets[i] = newBucket()
-	}
-
-	for _, b := range old {
-		oldEntries := b.Entries()
-
-		for _, oldEntry := range oldEntries {
-			h := hashFor(oldEntry.Key().Hash())
-			h = indexFor(h, length)
-			s.buckets[h].Put(oldEntry)
-		}
-	}
-}
-
-///////////////////////////////////////////
-///
-///
-///
-func NewLinkedMap() *LinkedMap {
-	buckets := make([]Bucket, BUCKET_SIZE_DEFAULT)
-	for i := 0; i < BUCKET_SIZE_DEFAULT; i++ {
-		buckets[i] = newLinkedBucket()
-	}
-
 	loadFactor := float32(0.75)
 	threshold := (int)((float32)(BUCKET_SIZE_DEFAULT) * loadFactor)
 
-	return &LinkedMap{
+	return &hashMap{
 		loadFactor: loadFactor,
 		threshold:  threshold,
 		entrySize:  0,
@@ -119,7 +36,8 @@ func NewLinkedMap() *LinkedMap {
 	}
 }
 
-type LinkedMap struct {
+// hashMap is the default implementation of Map.
+type hashMap struct {
 	loadFactor float32
 	threshold  int
 	entrySize  int
@@ -135,21 +53,21 @@ type LinkedMap struct {
 	slotFunc func(h, length int) int
 }
 
-func (l *LinkedMap) allocNewBuckets(length int) {
-	l.newBuckets = make([]Bucket, length)
-	l.newBucketSize = length
+func (h *hashMap) allocNewBuckets(length int) {
+	h.newBuckets = make([]Bucket, length)
+	h.newBucketSize = length
 	for i := 0; i < length; i++ {
-		l.newBuckets[i] = newLinkedBucket()
+		h.newBuckets[i] = newBucket()
 	}
 }
 
 // move moves n old entries to new bucket
-func (l *LinkedMap) moveEntry(n int) error {
-	for i := 0; i < n && l.rehashIdx < l.bucketSize; {
-		b := l.buckets[l.rehashIdx]
+func (h *hashMap) moveEntry(n int) error {
+	for i := 0; i < n && h.rehashIdx < h.bucketSize; {
+		b := h.buckets[h.rehashIdx]
 		// this bucket is empty
 		if b.Size() == 0 {
-			l.rehashIdx++
+			h.rehashIdx++
 			continue
 		}
 
@@ -160,74 +78,74 @@ func (l *LinkedMap) moveEntry(n int) error {
 		}
 
 		if _, delta := b.Delete(en.Key()); delta > 1 {
-			l.entrySize -= delta - 1
+			h.entrySize -= delta - 1
 		}
 
 		// move to new bucket
-		h := l.slotFunc(l.hashFunc(en.Key().Hash()), l.newBucketSize)
-		l.newBuckets[h].Put(en)
+		slot := h.slotFunc(h.hashFunc(en.Key().Hash()), h.newBucketSize)
+		h.newBuckets[slot].Put(en)
 
 		i++
 	}
 
-	if l.rehashIdx == l.bucketSize {
-		l.switchBuckets()
+	if h.rehashIdx == h.bucketSize {
+		h.switchBuckets()
 	}
 	return nil
 }
 
 // switchBuckets remove old buckets
-func (l *LinkedMap) switchBuckets() {
-	l.buckets = l.newBuckets
+func (h *hashMap) switchBuckets() {
+	h.buckets = h.newBuckets
 
 	// update rehashIdx, bucketSize, threshold
-	l.rehashIdx = 0
-	l.bucketSize = l.newBucketSize
-	l.threshold += (int)((float32)(l.newBucketSize) * l.loadFactor)
+	h.rehashIdx = 0
+	h.bucketSize = h.newBucketSize
+	h.threshold += (int)((float32)(h.newBucketSize) * h.loadFactor)
 
 	// clean up
-	l.newBucketSize = 0
-	l.newBuckets = nil
+	h.newBucketSize = 0
+	h.newBuckets = nil
 }
 
-func (l *LinkedMap) Put(key Key, val interface{}) error {
+func (h *hashMap) Put(key Key, val interface{}) error {
 	entry := newEntry(key, val)
 
-	if (l.entrySize + 1) < l.threshold {
-		h := l.slotFunc(l.hashFunc(key.Hash()), l.bucketSize)
-		if ok := l.buckets[h].Put(entry); ok {
-			l.entrySize++
+	if (h.entrySize + 1) < h.threshold {
+		slot := h.slotFunc(h.hashFunc(key.Hash()), h.bucketSize)
+		if ok := h.buckets[slot].Put(entry); ok {
+			h.entrySize++
 		}
 		return nil
 	}
 
 	// allocate new bucket slice if needed
-	if l.newBucketSize == 0 {
-		l.allocNewBuckets(2 * l.bucketSize)
+	if h.newBucketSize == 0 {
+		h.allocNewBuckets(2 * h.bucketSize)
 	}
 
 	// insert entry to new bucket slice
-	h := l.slotFunc(l.hashFunc(key.Hash()), l.newBucketSize)
-	if ok := l.newBuckets[h].Put(entry); ok {
-		l.entrySize++
+	slot := h.slotFunc(h.hashFunc(key.Hash()), h.newBucketSize)
+	if ok := h.newBuckets[slot].Put(entry); ok {
+		h.entrySize++
 	}
 
 	// move 2 old entries to new bucket
-	l.moveEntry(2)
+	h.moveEntry(2)
 	return nil
 }
 
-func (l *LinkedMap) Get(key Key) interface{} {
-	if l.newBuckets != nil {
+func (h *hashMap) Get(key Key) interface{} {
+	if h.newBuckets != nil {
 
-		h := l.slotFunc(l.hashFunc(key.Hash()), l.newBucketSize)
-		if en, ok := l.newBuckets[h].Get(key); ok {
+		slot := h.slotFunc(h.hashFunc(key.Hash()), h.newBucketSize)
+		if en, ok := h.newBuckets[slot].Get(key); ok {
 			return en.Value()
 		}
 	}
 
-	h := l.slotFunc(l.hashFunc(key.Hash()), l.bucketSize)
-	en, ok := l.buckets[h].Get(key)
+	slot := h.slotFunc(h.hashFunc(key.Hash()), h.bucketSize)
+	en, ok := h.buckets[slot].Get(key)
 
 	if !ok {
 		return nil
@@ -235,16 +153,16 @@ func (l *LinkedMap) Get(key Key) interface{} {
 	return en.Value()
 }
 
-func (l *LinkedMap) Delete(key Key) bool {
+func (h *hashMap) Delete(key Key) bool {
 	deleted := 0
-	if l.newBuckets != nil {
-		h := l.slotFunc(l.hashFunc(key.Hash()), l.newBucketSize)
-		_, cnt := l.newBuckets[h].Delete(key)
+	if h.newBuckets != nil {
+		slot := h.slotFunc(h.hashFunc(key.Hash()), h.newBucketSize)
+		_, cnt := h.newBuckets[slot].Delete(key)
 		deleted += cnt
 	}
 
-	h := l.slotFunc(l.hashFunc(key.Hash()), l.bucketSize)
-	_, cnt := l.buckets[h].Delete(key)
+	slot := h.slotFunc(h.hashFunc(key.Hash()), h.bucketSize)
+	_, cnt := h.buckets[slot].Delete(key)
 	deleted += cnt
 
 	if deleted > 0 {
