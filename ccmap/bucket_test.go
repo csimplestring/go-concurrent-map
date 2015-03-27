@@ -9,6 +9,19 @@ import (
 func TestBucketFindEntry(t *testing.T) {
 }
 
+func TestBucketPush(t *testing.T) {
+	b := newBucket()
+
+	b.Push(newEntry(NewStringKey("k1"), 1))
+	assert.Equal(t, "[[k1 1],]", b.String())
+
+	b.Push(newEntry(NewStringKey("k2"), 2))
+	assert.Equal(t, "[[k1 1],[k2 2],]", b.String())
+
+	b.Push(newEntry(NewStringKey("k3"), 3))
+	assert.Equal(t, "[[k1 1],[k2 2],[k3 3],]", b.String())
+}
+
 func TestBucketPut(t *testing.T) {
 	tests := []struct {
 		b   Bucket
@@ -33,7 +46,6 @@ func TestBucketPut(t *testing.T) {
 
 		assert.Equal(t, test.str, test.b.String())
 	}
-
 }
 
 func TestBucketGet(t *testing.T) {
@@ -68,6 +80,7 @@ func TestBucketDeleteOK(t *testing.T) {
 	b2.Put(newEntry(NewStringKey("k1"), 1))
 	b2.Put(newEntry(NewStringKey("k2"), 2))
 	b2.Put(newEntry(NewStringKey("k3"), 3))
+	b2.Put(newEntry(NewStringKey("k2"), 22))
 
 	tests := []struct {
 		b   Bucket
@@ -80,8 +93,8 @@ func TestBucketDeleteOK(t *testing.T) {
 			b2,
 			"k2",
 			"[[k3 3],[k1 1],]",
-			"[k2 2]",
-			1,
+			"[k2 22]",
+			2,
 		},
 	}
 

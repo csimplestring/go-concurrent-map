@@ -17,6 +17,5 @@ func TestEntryString(t *testing.T) {
 		k: NewStringKey("k1"),
 		v: 1,
 	}
-
 	assert.Equal(t, "[k1 1]", e.String())
 }

@@ -1,6 +1,7 @@
 package ccmap
 
 type Bucket interface {
+	Push(Entry) bool
 	Put(Entry) bool
 	Get(key Key) (Entry, bool)
 	Delete(key Key) (Entry, int)
@@ -26,7 +27,17 @@ type bucket struct {
 	head *linkedEntry
 }
 
-// Put appends en at the beginning of linkedEntry list.
+// Push appends en at the end of b.
+func (b *bucket) Push(en Entry) bool {
+	tail := b.head
+	for current := b.head.next; current != nil; current = current.next {
+		tail = current
+	}
+	tail.next = newLinkedEntry(en, nil)
+	return true
+}
+
+// Put appends en at the beginning of b.
 func (b *bucket) Put(en Entry) bool {
 	b.head.next = newLinkedEntry(en, b.head.next)
 	b.cnt++

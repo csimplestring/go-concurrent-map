@@ -4,9 +4,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-
 	"github.com/csimplestring/go-concurrent-map/algo/random"
+	"github.com/stretchr/testify/assert"
 )
 
 var (
@@ -32,13 +31,18 @@ func TestMapPut(t *testing.T) {
 func TestMapGet(t *testing.T) {
 	m := NewMap()
 
-	for i := 0; i < 100000; i++ {
+	for i := 0; i < 30; i++ {
 		key := NewStringKey(fmt.Sprintf("%s", i))
 		m.Put(key, i)
 	}
 
-	for i := 0; i < 100000; i++ {
-		assert.Equal(t, i, m.Get(NewStringKey(fmt.Sprintf("%s", i))))
+	for i := 0; i < 30; i++ {
+		key := NewStringKey(fmt.Sprintf("%s", i))
+		m.Put(key, i*2)
+	}
+
+	for i := 0; i < 30; i++ {
+		assert.Equal(t, i*2, m.Get(NewStringKey(fmt.Sprintf("%s", i))))
 	}
 }
 
@@ -80,7 +84,7 @@ func BenchmarkMapDelete(b *testing.B) {
 	}
 }
 
-func BenchmarkStandardMapPut(b *testing.B) {
+func BenchmarkNativePut(b *testing.B) {
 	m := make(map[string]interface{}, 16)
 
 	for i, k := range benchmarkKeys {
@@ -88,7 +92,7 @@ func BenchmarkStandardMapPut(b *testing.B) {
 	}
 }
 
-func BenchmarkStandardMapGet(b *testing.B) {
+func BenchmarkNativeGet(b *testing.B) {
 	m := make(map[string]interface{}, 16)
 
 	size := len(benchmarkKeys)
@@ -104,7 +108,7 @@ func BenchmarkStandardMapGet(b *testing.B) {
 	}
 }
 
-func BenchmarkStandardMapDelete(b *testing.B) {
+func BenchmarkNativeDelete(b *testing.B) {
 	m := make(map[string]interface{}, 16)
 
 	size := len(benchmarkKeys)
@@ -120,7 +124,7 @@ func BenchmarkStandardMapDelete(b *testing.B) {
 	}
 }
 
-func BenchmarkStandardMap(b *testing.B) {
+func BenchmarkNative(b *testing.B) {
 	m := make(map[string]interface{}, 16)
 
 	for i := 0; i < 10000; i++ {
@@ -136,11 +140,13 @@ func BenchmarkStandardMap(b *testing.B) {
 }
 
 func showSimpleMap(m *hashMap) {
-	for _, b := range m.buckets {
+	for _, b := range m.table[0].buckets {
 		fmt.Printf("%s\n", b.String())
 	}
 	fmt.Printf("----------------------\n")
-	for _, b := range m.newBuckets {
-		fmt.Printf("%s\n", b.String())
+	if m.table[1] != nil {
+		for _, b := range m.table[1].buckets {
+			fmt.Printf("%s\n", b.String())
+		}
 	}
 }
