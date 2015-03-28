@@ -22,27 +22,86 @@ func init() {
 func TestMapPut(t *testing.T) {
 	m := NewMap()
 
-	for i := 0; i < 10; i++ {
+	for i := 0; i < 30; i++ {
 		key := NewStringKey(fmt.Sprintf("%d", i))
 		m.Put(key, i)
 	}
 }
 
-func TestMapGet(t *testing.T) {
+func TestMapGetOK(t *testing.T) {
 	m := NewMap()
 
 	for i := 0; i < 30; i++ {
-		key := NewStringKey(fmt.Sprintf("%s", i))
+		key := NewStringKey(fmt.Sprintf("%d", i))
 		m.Put(key, i)
 	}
 
 	for i := 0; i < 30; i++ {
-		key := NewStringKey(fmt.Sprintf("%s", i))
+		actual, ok := m.Get(NewStringKey(fmt.Sprintf("%d", i)))
+		assert.True(t, ok)
+		assert.Equal(t, i, actual)
+	}
+
+	for i := 0; i < 30; i++ {
+		key := NewStringKey(fmt.Sprintf("%d", i))
 		m.Put(key, i*2)
 	}
 
 	for i := 0; i < 30; i++ {
-		assert.Equal(t, i*2, m.Get(NewStringKey(fmt.Sprintf("%s", i))))
+		actual, ok := m.Get(NewStringKey(fmt.Sprintf("%d", i)))
+		assert.True(t, ok)
+		assert.Equal(t, i*2, actual)
+	}
+}
+
+func TestMapGetFail(t *testing.T) {
+	m := NewMap()
+
+	for i := 0; i < 30; i++ {
+		key := NewStringKey(fmt.Sprintf("%d", i))
+		m.Put(key, i)
+	}
+
+	for i := 31; i < 60; i++ {
+		actual, ok := m.Get(NewStringKey(fmt.Sprintf("%d", i)))
+		assert.False(t, ok)
+		assert.Nil(t, actual)
+	}
+}
+
+func TestMapDeleteOK(t *testing.T) {
+	m := NewMap()
+
+	for i := 0; i < 30; i++ {
+		key := NewStringKey(fmt.Sprintf("%d", i))
+		m.Put(key, i)
+	}
+
+	for i := 0; i < 30; i++ {
+		key := NewStringKey(fmt.Sprintf("%d", i))
+		ok := m.Delete(key)
+		assert.True(t, ok, "%d", i)
+	}
+
+	for i := 0; i < 30; i++ {
+		actual, ok := m.Get(NewStringKey(fmt.Sprintf("%d", i)))
+		assert.False(t, ok)
+		assert.Nil(t, actual)
+	}
+}
+
+func TestMapDeleteFail(t *testing.T) {
+	m := NewMap()
+
+	for i := 0; i < 30; i++ {
+		key := NewStringKey(fmt.Sprintf("%d", i))
+		m.Put(key, i)
+	}
+
+	for i := 31; i < 60; i++ {
+		key := NewStringKey(fmt.Sprintf("%d", i))
+		ok := m.Delete(key)
+		assert.False(t, ok)
 	}
 }
 
