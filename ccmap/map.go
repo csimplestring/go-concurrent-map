@@ -14,7 +14,6 @@ var (
 
 // Map defines the functions that a map should support
 // TODO:
-// 1. rehash in Get(), Delete()
 // 2. shrink table
 // 3. rehash table in background
 type Map interface {
@@ -75,6 +74,7 @@ func (h *hashMap) Put(key Key, val interface{}) bool {
 func (h *hashMap) Get(key Key) (interface{}, bool) {
 	if h.rehashIdx != -1 {
 		if en, ok := h.table[1].get(key); ok {
+			h.rehash()
 			return en.Value(), true
 		}
 	}
@@ -95,6 +95,7 @@ func (h *hashMap) Delete(key Key) bool {
 	if h.rehashIdx != -1 {
 		_, cnt := h.table[1].delete(key)
 		deleted += cnt
+		h.rehash()
 	}
 
 	h.entryCnt -= deleted
