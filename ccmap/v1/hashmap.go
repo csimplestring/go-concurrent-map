@@ -58,14 +58,15 @@ func (h *hashMap) Put(key Key, val interface{}) bool {
 	defer h.mutex.Unlock()
 
 	entry := newEntry(key, val)
-	if h.rehashIdx == -1 {
+	if !h.isRehashing() {
 		if ok := h.putEntry(0, entry); !ok {
 			return false
 		}
 
-		if h.entryCnt > h.tables[0].size {
+		if h.entryCnt > len(h.tables[0].buckets) {
 			h.beginRehash()
 		}
+
 		return true
 	}
 
@@ -84,7 +85,7 @@ func (h *hashMap) Get(key Key) (interface{}, bool) {
 	h.mutex.RLock()
 	defer h.mutex.RUnlock()
 
-	if h.rehashIdx != -1 {
+	if h.isRehashing() {
 		if en, ok := h.tables[1].get(key); ok {
 			h.rehash()
 			return en.Value(), true
@@ -107,7 +108,7 @@ func (h *hashMap) Delete(key Key) bool {
 	_, cnt := h.tables[0].delete(key)
 	deleted += cnt
 
-	if h.rehashIdx != -1 {
+	if h.isRehashing() {
 		_, cnt := h.tables[1].delete(key)
 		deleted += cnt
 		h.rehash()
@@ -121,11 +122,38 @@ func (h *hashMap) Delete(key Key) bool {
 	return false
 }
 
+// Size returns number of entries.
+func (h *hashMap) Size() int {
+	return h.entryCnt
+}
+
+// putEntry puts en into tables[tableIdx].
+// It returns true if succeeds, otherwise false.
+func (h *hashMap) putEntry(tableIdx int, en Entry) bool {
+	status := h.tables[tableIdx].put(en)
+
+	if status == entryAdd {
+		h.entryCnt++
+	}
+
+	if status == entryErr {
+		return false
+	}
+
+	return true
+}
+
+/*********** Expand Hash ***********/
+
+func (h *hashMap) isRehashing() bool {
+	return h.rehashIdx != -1
+}
+
 // beginRehash sets rehashIdx to be 0, creates new htable for
 // tables[1].
 func (h *hashMap) beginRehash() {
 	h.rehashIdx = 0
-	newSize := h.tables[0].size * 2
+	newSize := len(h.tables[0].buckets) * 2
 	h.tables[1], _ = newHtable(newSize)
 }
 
@@ -141,7 +169,7 @@ func (h *hashMap) stopRehash() {
 func (h *hashMap) rehash() {
 	// find the non-empty bucket
 	b := h.tables[0].buckets[h.rehashIdx]
-	for b.Size() == 0 && h.rehashIdx < h.tables[0].size {
+	for b.Size() == 0 && h.rehashIdx < len(h.tables[0].buckets) {
 		b = h.tables[0].buckets[h.rehashIdx]
 		h.rehashIdx++
 	}
@@ -152,19 +180,7 @@ func (h *hashMap) rehash() {
 	}
 
 	// rehash ends
-	if h.rehashIdx == h.tables[0].size {
+	if h.rehashIdx == len(h.tables[0].buckets) {
 		h.stopRehash()
 	}
-}
-
-// putEntry puts en into tables[tableIdx].
-// It returns true if succeeds, otherwise false.
-func (h *hashMap) putEntry(tableIdx int, en Entry) bool {
-	ok := h.tables[tableIdx].put(en)
-	if !ok {
-		return false
-	}
-
-	h.entryCnt++
-	return true
 }

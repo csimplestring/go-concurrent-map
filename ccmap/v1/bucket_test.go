@@ -30,7 +30,7 @@ func TestBucketPut(t *testing.T) {
 	}{
 		{
 			newBucket(),
-			"[[k2 7],[k2 2],[k1 1],]",
+			"[[k2 7],[k1 1],]",
 		},
 	}
 
@@ -38,12 +38,13 @@ func TestBucketPut(t *testing.T) {
 		t.Logf("test[%d]\n", i)
 
 		ok := test.b.Put(newEntry(NewStringKey("k1"), 1))
-		assert.True(t, ok)
+		assert.Equal(t, entryAdd, ok)
 
 		ok = test.b.Put(newEntry(NewStringKey("k2"), 2))
-		assert.True(t, ok)
+		assert.Equal(t, entryAdd, ok)
 
 		ok = test.b.Put(newEntry(NewStringKey("k2"), 7))
+		assert.Equal(t, entryReplace, ok)
 
 		assert.Equal(t, test.str, test.b.String())
 	}
@@ -81,7 +82,6 @@ func TestBucketDeleteOK(t *testing.T) {
 	b2.Put(newEntry(NewStringKey("k1"), 1))
 	b2.Put(newEntry(NewStringKey("k2"), 2))
 	b2.Put(newEntry(NewStringKey("k3"), 3))
-	b2.Put(newEntry(NewStringKey("k2"), 22))
 
 	tests := []struct {
 		b   Bucket
@@ -94,8 +94,8 @@ func TestBucketDeleteOK(t *testing.T) {
 			b2,
 			"k2",
 			"[[k3 3],[k1 1],]",
-			"[k2 22]",
-			2,
+			"[k2 2]",
+			1,
 		},
 	}
 

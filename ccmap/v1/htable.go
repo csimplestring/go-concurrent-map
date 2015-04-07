@@ -10,7 +10,6 @@ import (
 // <key, value> pairs in buckets.
 type htable struct {
 	mask    int
-	size    int
 	buckets []Bucket
 }
 
@@ -35,7 +34,6 @@ func newHtable(size int) (*htable, error) {
 
 	return &htable{
 		mask:    size - 1,
-		size:    size,
 		buckets: buckets,
 	}, nil
 }
@@ -52,7 +50,7 @@ func (ht *htable) get(key Key) (Entry, bool) {
 }
 
 // put puts en at the beginning of bucket.
-func (ht *htable) put(en Entry) bool {
+func (ht *htable) put(en Entry) int {
 	index := ht.indexFor(en.Key().Hash())
 	return ht.buckets[index].Put(en)
 }
@@ -67,4 +65,13 @@ func (ht *htable) delete(key Key) (Entry, int) {
 func (ht *htable) push(en Entry) bool {
 	index := ht.indexFor(en.Key().Hash())
 	return ht.buckets[index].Push(en)
+}
+
+// size returns the number of entries in the buckets.
+func (ht *htable) size() int {
+	cnt := 0
+	for _, b := range ht.buckets {
+		cnt += b.Size()
+	}
+	return cnt
 }

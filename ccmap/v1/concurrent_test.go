@@ -14,12 +14,13 @@ func TestNewConcurrentMap(t *testing.T) {
 }
 
 func TestCCHashMapPut(t *testing.T) {
-	m, _ := NewConcurrentMap(8)
+	m, _ := NewConcurrentMap(4)
 
-	for i := 0; i < 30; i++ {
+	for i := 0; i < 4; i++ {
 		key := NewStringKey(fmt.Sprintf("%d", i))
 		m.Put(key, i)
 	}
+	m.(*concurrentHashMap).Stat()
 }
 
 func TestCCHashMapPut2(t *testing.T) {
@@ -29,7 +30,7 @@ func TestCCHashMapPut2(t *testing.T) {
 		key := NewStringKey(fmt.Sprintf("%d", i))
 		m.Put(key, i)
 	}
-	m.(*concurrentHashMap).Stat()
+
 }
 
 func TestCCHashMapGetOK(t *testing.T) {

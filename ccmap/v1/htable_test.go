@@ -9,13 +9,13 @@ import (
 func TestNewHtableOk(t *testing.T) {
 	h, err := newHtable(3)
 	assert.NoError(t, err)
-	assert.Equal(t, 4, h.size)
+	assert.Equal(t, 4, len(h.buckets))
 
 	h, _ = newHtable(15)
-	assert.Equal(t, 16, h.size)
+	assert.Equal(t, 16, len(h.buckets))
 
 	h, _ = newHtable(24)
-	assert.Equal(t, 32, h.size)
+	assert.Equal(t, 32, len(h.buckets))
 }
 
 func TestNewHtableError(t *testing.T) {

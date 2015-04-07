@@ -20,6 +20,24 @@ func init() {
 	}
 }
 
+func TestHashMapSize(t *testing.T) {
+	m, _ := newHashMap(6)
+
+	m.Put(NewStringKey("1"), 1)
+	m.Put(NewStringKey("2"), 1)
+	m.Put(NewStringKey("3"), 1)
+	assert.Equal(t, 3, m.Size())
+
+	m.Put(NewStringKey("3"), 3)
+	assert.Equal(t, 3, m.Size())
+
+	m.Delete(NewStringKey("2"))
+	assert.Equal(t, 2, m.Size())
+
+	m.Delete(NewStringKey("2"))
+	assert.Equal(t, 2, m.Size())
+}
+
 func TestHashMapPut(t *testing.T) {
 	m, _ := NewHashMap(100)
 

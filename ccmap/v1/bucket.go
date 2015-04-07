@@ -2,9 +2,15 @@ package v1
 
 import . "github.com/csimplestring/go-concurrent-map/ccmap/key"
 
+const (
+	entryErr     = 0
+	entryAdd     = 1
+	entryReplace = 2
+)
+
 type Bucket interface {
 	Push(Entry) bool
-	Put(Entry) bool
+	Put(Entry) int
 	Get(key Key) (Entry, bool)
 	Delete(key Key) (Entry, int)
 
@@ -36,14 +42,27 @@ func (b *bucket) Push(en Entry) bool {
 		tail = current
 	}
 	tail.next = newLinkedEntry(en, nil)
+	b.cnt++
 	return true
 }
 
 // Put appends en at the beginning of b.
-func (b *bucket) Put(en Entry) bool {
-	b.head.next = newLinkedEntry(en, b.head.next)
-	b.cnt++
-	return true
+func (b *bucket) Put(en Entry) int {
+	var p *linkedEntry = nil
+	for current := b.head.next; current != nil; current = current.next {
+		if current.Key().Equal(en.Key()) {
+			p = current
+		}
+	}
+
+	if p == nil {
+		b.head.next = newLinkedEntry(en, b.head.next)
+		b.cnt++
+		return entryAdd
+	} else {
+		p.SetValue(en.Value())
+		return entryReplace
+	}
 }
 
 // Get finds entry based on key.
